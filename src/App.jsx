@@ -411,88 +411,235 @@ function Evaluator(){
   </div>);
 }
 
-const FACTORY_CHANNELS = ["Paid Ad — Headline","Paid Ad — Sub-copy","Landing Page","App Store","CRM / Push","Social / Owned","Influencer","Brand Campaign"];
+const FACTORY_CHANNELS = [
+  {id:"paid",label:"Paid Ad",levels:["4","5","6"],rule:"Scroll-stopping. Lead with pain or surprising claim. Max 15 words for headline. Sub-copy backs with evidence.",
+    formats:[{id:"h",label:"Headline only"},{id:"h+s",label:"Headline + Sub-copy"},{id:"h+s+cta",label:"Headline + Sub + CTA"}]},
+  {id:"lp",label:"Landing Page",levels:["3","4","5","6","7"],rule:"Hierarchy descends with scroll: Hero → USP → Targeting → RTB → CTA. Each section answers one question.",
+    formats:[{id:"hero",label:"Hero (headline + sub)"},{id:"section",label:"Section (headline + body)"},{id:"full",label:"Full section (headline + bullets + CTA)"}]},
+  {id:"appstore",label:"App Store",levels:["2","4","6"],rule:"Front-load the most compelling claim. Include data. Limited space — every word counts.",
+    formats:[{id:"title",label:"Title + Subtitle"},{id:"desc",label:"Short description (80 chars)"},{id:"full",label:"Full description paragraph"}]},
+  {id:"crm",label:"CRM / Push",levels:["4","5","7"],rule:"Personal, direct, action-oriented. Gentle urgency. Respect character limits strictly.",
+    formats:[{id:"push",label:"Push notification (<50 chars)"},{id:"push-pair",label:"Push title + body"},{id:"email",label:"Email subject + preview"},{id:"sms",label:"SMS (<80 chars)"}]},
+  {id:"social",label:"Social",levels:["4","5","6"],rule:"Conversational, shareable. More playful OK. Must pass brand tone. No clickbait.",
+    formats:[{id:"caption",label:"Instagram caption"},{id:"short",label:"Short (1 sentence + CTA)"},{id:"story",label:"Story text (<30 chars)"}]},
+  {id:"influencer",label:"Influencer",levels:["4","5","6"],rule:"Natural spoken language. Real recommendation, not script. Personal story framing. Zero corporate tone.",
+    formats:[{id:"hook",label:"Hook (first 3 seconds)"},{id:"talking",label:"Talking points (3-4 bullets)"},{id:"script",label:"Full script (30-60 sec)"}]},
+  {id:"brand",label:"Brand Campaign",levels:["1","2","3"],rule:"Vision + Philosophy + Definition. Big-picture. Emotional resonance. Not seasonal.",
+    formats:[{id:"slogan",label:"Campaign slogan"},{id:"manifesto",label:"Manifesto paragraph"},{id:"tagline",label:"Tagline + supporting line"}]},
+];
+
+const FACTORY_ANGLES = [
+  {id:"usp",label:"💡 Value / USP",desc:"Why Speak — uncomfortable truth + solution",levels:["4"]},
+  {id:"feature",label:"⚙️ Feature",desc:"What you can do — specific product capabilities",levels:["6"]},
+  {id:"price",label:"💰 Price / Discount",desc:"How much — pricing, promotions, value comparison",levels:["6","7"]},
+  {id:"proof",label:"👥 Social Proof",desc:"Who uses it — reviews, awards, numbers",levels:["6"]},
+  {id:"habit",label:"🔥 Habit / Motivation",desc:"Why now — urgency, habit-building, momentum",levels:["4","5"]},
+];
+
 const FACTORY_TARGETS = ["General","Career / Business","Travel","Growth","Life Overseas","Test Prep (OPIc/TOEIC)","Parents"];
-const FACTORY_FORMATS = ["Headline (5–15 words)","Sub-copy (1–2 sentences)","Body copy (paragraph)","CTA button text","Push notification (<50 chars)","Social post caption"];
 const FACTORY_TONES = ["Safe — Most on-brand","Balanced","Bold — Experimental"];
 
-const SYSTEM_PROMPT = `You are Speak's Copywriting Agent (CopyOS KR), an expert Korean marketing copywriter.
+const SYSTEM_PROMPT = `You are Speak Korea's CopyOS Agent — an expert Korean marketing copywriter who has internalized Speak's brand identity.
 
-BRAND:
-- Vision: To reinvent the way people learn, starting with language.
-- Philosophy: 틀려라, 트일 것이다 (Make mistakes — you'll break through)
-- Definition: 나를 끌어주는 영어 앱 (The app that pulls me along)
-- Key Copy: 따라오면, 말이 된다 스픽 (Follow along — you'll speak. Speak.)
-- Positioning concept: Pacer — not a teacher above you, but a guide slightly ahead pulling you forward.
+═══ BRAND IDENTITY ═══
 
-TONE: Honest × Witty
-- Honest = No inflated claims. Backed by data (Forbes AI 50, 93% ASR, 1M+ Korean voice data).
-- Witty = Not meme-chasing. Spider-Man's cool quip — not Duolingo's aggressive push.
+VISION: To reinvent the way people learn, starting with language.
+PHILOSOPHY: 틀려라, 트일 것이다 (Make mistakes — you'll break through)
+BRAND DEFINITION: 나를 끌어주는 영어 앱 (The app that pulls me along)
+KEY COPY: 따라오면, 말이 된다 스픽 (Follow along — you'll speak. Speak.)
 
-4 USPs:
-1. Speak pulls speech out of you (Learn→Practice→Apply, 100+ sentences/day)
-2. Catches you until you get it right (phoneme correction, spaced repetition)
-3. Teaches language you can actually use (LA-produced, personalized)
-4. Doesn't let you quit (streaks, challenges, adaptive nudges)
+POSITIONING CONCEPT: "Pacer"
+- NOT a teacher standing above → a guide slightly ahead, pulling you forward
+- NOT a tool you use → an active agent that moves you
+- NOT feature-led ("AI English app") → method-led ("the app that pulls me along")
+- The user follows, Speak leads. The journey is structured but the user always feels agency.
 
-DO: Lead with outcomes not features. Short direct sentences. Acknowledge real pain. Back with data. Write as peer not instructor.
-DON'T: Celebrity endorsement language. Unrealistic timelines. Gamification language. Generic edtech phrases. Trivialize difficulty. ALL CAPS.
+═══ TONE: Honest × Witty ═══
 
-NOT SPEAKNESS (avoid): Frivolous/lightweight, sensational/exaggerated, authoritative/preachy, gamification-first.
+HONEST means:
+- No inflated claims. "7일만에 1,000문장" is okay (factual). "7일만에 영어 마스터" is NOT.
+- Acknowledge real difficulty. "몇 년을 공부했는데도 말을 못 합니다" — don't sugarcoat.
+- Data-backed: Forbes AI 50, 93% ASR, 100만 명+ 음성 데이터, 하루 100문장, 15M downloads.
+- Peer tone, never instructor. "이제 진짜 해보자" not "지금 시작하세요!"
 
-TARGET AUDIENCES:
-- Career: 25-34, need English for work. Highest LTV ($23.46) and CVR (24.7%).
-- Travel: 31.3% of signups, growing to 34%.
-- Growth: Self-improvement, "would be nice to have".
-- Life Overseas: Living/planning to live abroad.
-- Test Prep: OPIc, TOEIC Speaking. Deadline-driven, high CVR (23.8%).
-- Parents: Want to speak English to kids.
+WITTY means:
+- Spider-Man's cool quip — not Duolingo's chaotic owl
+- Smirk-worthy, not laugh-out-loud. Clever, not cute.
+- "대방어 중사이즈 = 스픽 3달 무제한" — Speak witty (unexpected comparison)
+- "수영 인강이 아니라 물에 들어가야 하는 것처럼" — Speak witty (analogy that lands)
 
-You must respond ONLY in valid JSON format with no markdown. Return an array of 3-5 copy options. Each option:
-{"label":"string","headline":"string","supporting":"string (optional)","brand_note":"string","tone_level":"safe|balanced|bold"}`;
+═══ 4 USPs ═══
+
+USP1 "Pulls Speech Out": Years of study but can't speak → Speak makes you speak. (100+ sentences/day, Learn→Practice→Apply)
+USP2 "Catches Until Right": Skipping mistakes = no growth → Speak makes you face them. (phoneme correction, spaced repetition, real-time AI feedback)
+USP3 "Real Language": Textbook English doesn't work → Speak teaches usable language. (LA-produced, personalized, cultural context)
+USP4 "Won't Let Quit": Willpower isn't enough → Speak won't let you stop. (streaks, challenges, adaptive nudges)
+
+═══ NOT SPEAKNESS (must avoid) ═══
+✗ Frivolous: Too lightweight, childish
+✗ Sensational: Clickbait, exaggerated, "shocking" framing
+✗ Authoritative: Preachy, dogmatic, teacher-knows-best
+✗ Gamification-first: Learning as game, streak/score obsession
+
+═══ COPY RULES ═══
+DO: Outcomes > features. Short direct sentences. Acknowledge pain before solution. Back with data. Peer tone. "Uncomfortable Truth → Speak's Answer" structure for USP.
+DON'T: Celebrity language. Unrealistic timelines. "Fun and easy." Generic edtech. ALL CAPS. "소개합니다/Introducing." Feature-first.
+
+═══ DATA BANK (USE ONLY THESE NUMBERS) ═══
+- 글로벌 1,500만 다운로드
+- 평점 4.8 (17만개 평가)
+- 93% 이상 ASR 정확도
+- 한국인 영어 음성 데이터 100만 명+
+- 하루 평균 100문장, 주 1,000문장
+- 500일 분량 코스, 2,000개+ 콘텐츠
+- 100% LA 자체 스튜디오 제작
+- 구독 30일 후 50%+ 활성 유지율
+- S4B 도입 기업 300+, 10대 대기업 채택률 80%
+- 누적 투자 2,274억원, 유니콘 1.4조
+- Forbes AI 50, Google Play 올해의 앱, YouTube Works Award
+- 프리미엄 연간 ₩129,000 (월 ₩10,750), 프리미엄 플러스 연간 ₩299,000 (월 ₩19,916)
+DO NOT invent numbers. If a claim needs data not here, state without a number.
+
+═══ TARGET AUDIENCES ═══
+- Career/Business: 25-34, English for work/meetings/salary. Highest LTV ($23.46), CVR 24.7%.
+- Travel: 31.3% of signups (growing to 34%). Pre-trip urgency.
+- Growth: Self-improvement. "Would be nice." Lower urgency, needs emotional hook.
+- Life Overseas: Living/planning abroad. High stakes, daily necessity.
+- Test Prep: OPIc, TOEIC Speaking. Deadline-driven, CVR 23.8%.
+- Parents: Want to speak English to/with kids. Emotional motivation.
+- General: Broad. Lead with universal pain.
+
+═══ OUTPUT FORMAT ═══
+Respond ONLY in valid JSON. No markdown. Return an array of 5-10 copy options.
+Each option:
+{
+  "label": "short descriptive label in Korean",
+  "copies": {}, // see FORMAT SPEC in user message
+  "en_translation": "English translation of main headline",
+  "levels_used": "hierarchy levels drawn from (e.g. 'USP1 + RTB-Scale')",
+  "brand_note": "1-sentence brand strategy explanation",
+  "tone_level": "safe|balanced|bold",
+  "data_used": "specific data points used, or 'none'"
+}`;
 
 function Factory({copies}){
-  const[channel,setChannel]=useState(FACTORY_CHANNELS[0]);
+  const[channelIdx,setChannelIdx]=useState(0);
+  const[formatIdx,setFormatIdx]=useState(0);
+  const[angles,setAngles]=useState(["usp"]);
   const[target,setTarget]=useState(FACTORY_TARGETS[0]);
-  const[format,setFormat]=useState(FACTORY_FORMATS[0]);
   const[tone,setTone]=useState(FACTORY_TONES[1]);
   const[context,setContext]=useState("");
   const[loading,setLoading]=useState(false);
   const[results,setResults]=useState(null);
   const[error,setError]=useState(null);
   const[copiedIdx,setCopiedIdx]=useState(null);
+  
+  const ch=FACTORY_CHANNELS[channelIdx];
+  const fmt=ch.formats[formatIdx]||ch.formats[0];
+  const selectedAngles=FACTORY_ANGLES.filter(a=>angles.includes(a.id));
+  const toggleAngle=(id)=>{setAngles(prev=>prev.includes(id)?prev.filter(a=>a!==id):[...prev,id]);setResults(null)};
 
   const relevantCopies = useMemo(()=>{
     const targetMap={"Career / Business":"T-Career","Travel":"T-Travel","Growth":"T-Growth","Life Overseas":"T-Overseas","Test Prep (OPIc/TOEIC)":"T-Test","Parents":"T-Parents","General":"T-General"};
     const tSub=targetMap[target];
-    const targetCopies=copies.filter(c=>c.sub===tSub).slice(0,5);
-    const uspCopies=copies.filter(c=>c.l==="4"&&c.k).slice(0,4);
-    const rtbCopies=copies.filter(c=>c.l==="6"&&c.sub==="RTB-Features").slice(0,5);
-    const defCopies=copies.filter(c=>c.l==="3"&&c.k);
-    return[...defCopies,...uspCopies,...targetCopies,...rtbCopies];
-  },[target,copies]);
+    const angleLevels=[...new Set(selectedAngles.flatMap(a=>a.levels))];
+    const allLevels=[...new Set([...ch.levels,...angleLevels])];
+    const channelCopies=copies.filter(c=>allLevels.includes(c.l)).slice(0,10);
+    const targetCopies=copies.filter(c=>c.sub===tSub).slice(0,8);
+    const keyCopies=copies.filter(c=>c.k);
+    // Angle-specific pulls
+    let angleCopies=[];
+    if(angles.includes("price")) angleCopies.push(...copies.filter(c=>c.sub==="RTB-Price").slice(0,5));
+    if(angles.includes("proof")) angleCopies.push(...copies.filter(c=>c.sub==="RTB-Scale"||c.sub==="RTB-Awards"||c.sub==="RTB-Reviews").slice(0,6));
+    if(angles.includes("feature")) angleCopies.push(...copies.filter(c=>c.sub==="RTB-Features").slice(0,6));
+    if(angles.includes("habit")) angleCopies.push(...copies.filter(c=>c.sub==="USP4"||c.l==="5").slice(0,5));
+    if(angles.includes("usp")) angleCopies.push(...copies.filter(c=>c.l==="4"&&!c.k).slice(0,5));
+    const seen=new Set();
+    return[...keyCopies,...targetCopies,...angleCopies,...channelCopies].filter(c=>{const k=c.ko;if(seen.has(k))return false;seen.add(k);return true}).slice(0,30);
+  },[target,ch,angles,copies]);
+
+  // Format spec based on channel+format
+  const getFormatSpec=()=>{
+    const f=fmt.id;
+    if(f==="h") return `Each option's "copies" field: {"headline":"string (max 15 words)"}`;
+    if(f==="h+s") return `Each option's "copies" field: {"headline":"string (max 15 words)","sub_copy":"string (1-2 sentences)"}`;
+    if(f==="s") return `Each option's "copies" field: {"sub_copy":"string (1-2 sentences backing up a headline)"}`;
+    if(f==="hero") return `Each option's "copies" field: {"headline":"string","sub_copy":"string (1-2 sentences)"}`;
+    if(f==="hero-full") return `Each option's "copies" field: {"headline":"string","sub_copy":"string","cta":"string (button text)"}`;
+    if(f==="section") return `Each option's "copies" field: {"section_headline":"string","body":"string (paragraph, 2-3 sentences)"}`;
+    if(f==="multi") return `Each option's "copies" field: {"section_headline":"string","bullet_1":"string","bullet_2":"string","bullet_3":"string","cta":"string"}`;
+    if(f==="title") return `Each option's "copies" field: {"app_title":"string (max 30 chars)","subtitle":"string (max 30 chars)"}`;
+    if(f==="desc") return `Each option's "copies" field: {"short_description":"string (max 80 chars)"}`;
+    if(f==="full") return `Each option's "copies" field: {"description":"string (1 paragraph, 3-4 sentences)"}`;
+    if(f==="push") return `Each option's "copies" field: {"push_text":"string (MUST be under 50 characters)"}`;
+    if(f==="push-pair") return `Each option's "copies" field: {"push_title":"string (max 20 chars)","push_body":"string (max 50 chars)"}`;
+    if(f==="email") return `Each option's "copies" field: {"subject":"string (max 50 chars)","preview":"string (max 90 chars)"}`;
+    if(f==="sms") return `Each option's "copies" field: {"sms_text":"string (MUST be under 80 characters)"}`;
+    if(f==="caption") return `Each option's "copies" field: {"caption":"string (2-3 sentences + hashtags)"}`;
+    if(f==="short") return `Each option's "copies" field: {"text":"string (1 sentence)","cta":"string"}`;
+    if(f==="story") return `Each option's "copies" field: {"story_text":"string (MUST be under 30 characters)"}`;
+    if(f==="hook") return `Each option's "copies" field: {"hook":"string (spoken, first 3 seconds, must grab attention)"}`;
+    if(f==="talking") return `Each option's "copies" field: {"point_1":"string","point_2":"string","point_3":"string","point_4":"string (optional)"}`;
+    if(f==="full-script") return `Each option's "copies" field: {"hook":"string","body":"string (main content, 3-4 sentences)","cta":"string (closing call to action)"}`;
+    if(f==="slogan") return `Each option's "copies" field: {"slogan":"string (max 10 words)"}`;
+    if(f==="manifesto") return `Each option's "copies" field: {"manifesto":"string (1 powerful paragraph, 3-5 sentences)"}`;
+    if(f==="tagline") return `Each option's "copies" field: {"tagline":"string","supporting":"string (1 sentence)"}`;
+    return `Each option's "copies" field: {"headline":"string","sub_copy":"string"}`;
+  };
 
   const generate=async()=>{
     setLoading(true);setError(null);setResults(null);
-    const refCopyText=relevantCopies.map(c=>`[${c.l}/${c.sub||""}] ${c.ko}${c.en?` (${c.en})`:""}`).join("\n");
+    const refCopyText=relevantCopies.map(c=>{
+      const lvl=LEVELS.find(l=>l.id===c.l);
+      return`[${lvl?.label||c.l}${c.sub?"/"+c.sub:""}] ${c.ko}${c.en?` — ${c.en}`:""}`;
+    }).join("\n");
+    const angleLabels=selectedAngles.map(a=>`${a.label} — ${a.desc}`).join("\n- ");
+    const angleGuidance=selectedAngles.map(a=>{
+      if(a.id==="usp") return"• VALUE/USP: Lead with uncomfortable truth, position Speak as answer. Problem first, not features.";
+      if(a.id==="feature") return"• FEATURE: Highlight capabilities (AI Free Talk, 3-Step, Smart Review etc). Frame as outcomes ('음소 분석' → '원어민처럼 자연스럽게').";
+      if(a.id==="price") return"• PRICE: Lead with price/value. DATA BANK prices only. Comparisons ('대방어 중사이즈 = 스픽 3달'). Pair price with what you get.";
+      if(a.id==="proof") return"• PROOF: Lead with social proof — downloads, ratings, awards, user quotes. Numbers first, emotion second.";
+      return"• HABIT: Why start TODAY. Streak/routine framing without gamification-first. '양치질처럼 당연한 습관' style.";
+    }).join("\n");
     const userMsg=`Generate Korean marketing copy for Speak.
 
-BRIEF:
-- Channel: ${channel}
-- Target: ${target}
-- Format: ${format}
-- Tone intensity: ${tone}
-${context?`- Additional context: ${context}`:""}
+═══ BRIEF ═══
+Channel: ${ch.label}
+Format: ${fmt.label}
+Message Angles (combine these): 
+- ${angleLabels}
+Target audience: ${target}
+Tone intensity: ${tone}
+${context?`Additional context: ${context}`:""}
 
-REFERENCE COPIES FROM WAREHOUSE:
+═══ CHANNEL RULES ═══
+${ch.rule}
+
+═══ MESSAGE ANGLE GUIDANCE ═══
+Combine the following angles naturally in each copy. Don't treat them as separate sections — weave them together.
+${angleGuidance}
+
+═══ FORMAT SPEC ═══
+${getFormatSpec()}
+
+═══ REFERENCE COPIES (${relevantCopies.length}) ═══
 ${refCopyText}
 
-Generate 3-5 options in Korean. Each must be faithful to Speak's brand voice. Vary from safest to boldest. Return ONLY a JSON array.`;
+═══ INSTRUCTIONS ═══
+Generate 5-10 Korean copy options. Vary from safest to boldest. Each must:
+1. Follow channel rules and format spec exactly
+2. Combine ALL selected message angles naturally
+3. Match target audience motivation
+4. Use ONLY data from DATA BANK
+5. Follow Honest × Witty tone
+6. Respect character limits
+
+Return ONLY a JSON array of 5-10 options.`;
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:SYSTEM_PROMPT,messages:[{role:"user",content:userMsg}]})
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:SYSTEM_PROMPT,messages:[{role:"user",content:userMsg}]})
       });
       const data=await res.json();
       const text=data.content?.map(b=>b.type==="text"?b.text:"").join("")||"";
@@ -504,42 +651,61 @@ Generate 3-5 options in Korean. Each must be faithful to Speak's brand voice. Va
   };
 
   const toneColors={"safe":"#10B981","balanced":"#F59E0B","bold":"#EF4444"};
+  
+  // Render copy fields from the copies object
+  const renderCopies=(copies)=>{
+    if(!copies)return null;
+    const entries=Object.entries(copies);
+    if(entries.length===1){
+      return <div style={{fontSize:17,fontWeight:700,lineHeight:1.5,color:"#EDEDF3",fontFamily:"'Noto Sans KR',sans-serif",letterSpacing:"-0.015em",paddingRight:60}}>{entries[0][1]}</div>;
+    }
+    return entries.map(([key,val],j)=>{
+      const label=key.replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase());
+      const isMain=j===0;
+      return <div key={key} style={{marginBottom:j<entries.length-1?6:0}}>
+        <span style={{fontSize:9,fontWeight:600,color:"#4A4A60",textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</span>
+        <div style={{fontSize:isMain?17:14,fontWeight:isMain?700:500,lineHeight:1.5,color:isMain?"#EDEDF3":"#B4B4C8",fontFamily:"'Noto Sans KR',sans-serif",paddingRight:isMain?60:0}}>{val}</div>
+      </div>;
+    });
+  };
 
   return(<div style={{padding:"28px 32px",maxWidth:900}}>
     <h2 style={{fontSize:18,fontWeight:700,fontFamily:"'Space Mono',monospace",marginBottom:4}}>🏭 Copy Factory</h2>
-    <p style={{fontSize:12,color:"#7E7E96",marginBottom:24}}>Input your brief → Generate on-brand copy options from the warehouse</p>
+    <p style={{fontSize:12,color:"#7E7E96",marginBottom:24}}>Channel → Angle → Target → Tone → Generate 5-10 on-brand options</p>
 
-    {/* Brief form */}
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-      {/* Channel */}
-      <div>
-        <label style={{fontSize:10,fontWeight:700,color:"#4A4A60",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Channel</label>
-        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-          {FACTORY_CHANNELS.map(c=><button key={c} onClick={()=>setChannel(c)} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${channel===c?"#6366F144":"#1A1A24"}`,background:channel===c?"#6366F115":"#0D0D14",color:channel===c?"#A5B4FC":"#7E7E96",fontSize:11,cursor:"pointer",fontWeight:channel===c?600:400}}>{c}</button>)}
-        </div>
+    {/* ① Channel */}
+    <div style={{marginBottom:20}}>
+      <label style={{fontSize:11,fontWeight:700,color:"#A5B4FC",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:8}}>① Channel</label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+        {FACTORY_CHANNELS.map((c,ci)=><button key={c.id} onClick={()=>{setChannelIdx(ci);setFormatIdx(0);setResults(null)}} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${channelIdx===ci?"#6366F1":"#1A1A24"}`,background:channelIdx===ci?"#6366F120":"#0D0D14",color:channelIdx===ci?"#A5B4FC":"#7E7E96",fontSize:12,cursor:"pointer",fontWeight:channelIdx===ci?700:400}}>{c.label}</button>)}
       </div>
-      {/* Target */}
+      {/* Format sub-options */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:8}}>
+        {ch.formats.map((f,fi)=><button key={f.id} onClick={()=>setFormatIdx(fi)} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${formatIdx===fi?"#6366F155":"#1A1A24"}`,background:formatIdx===fi?"#6366F110":"transparent",color:formatIdx===fi?"#A5B4FC":"#5A5A72",fontSize:10,cursor:"pointer",fontWeight:formatIdx===fi?600:400}}>{f.label}</button>)}
+      </div>
+    </div>
+
+    {/* ② Message Angle (multi-select) */}
+    <div style={{marginBottom:20}}>
+      <label style={{fontSize:11,fontWeight:700,color:"#F59E0B",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:8}}>② Message Angle <span style={{fontWeight:400,color:"#4A4A60"}}>— select one or more</span></label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+        {FACTORY_ANGLES.map(a=>{const sel=angles.includes(a.id);return<button key={a.id} onClick={()=>toggleAngle(a.id)} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${sel?"#F59E0B":"#1A1A24"}`,background:sel?"#F59E0B15":"#0D0D14",color:sel?"#FCD34D":"#7E7E96",fontSize:12,cursor:"pointer",fontWeight:sel?700:400}}>{a.label}</button>})}
+      </div>
+      <div style={{marginTop:6,fontSize:11,color:"#5A5A72"}}>{selectedAngles.map(a=>a.desc).join(" + ")}</div>
+    </div>
+
+    {/* ③ Target + ④ Tone */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
       <div>
-        <label style={{fontSize:10,fontWeight:700,color:"#4A4A60",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Target Audience</label>
+        <label style={{fontSize:11,fontWeight:700,color:"#F9A8D4",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:8}}>③ Target</label>
         <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
           {FACTORY_TARGETS.map(t=><button key={t} onClick={()=>setTarget(t)} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${target===t?"#EC489944":"#1A1A24"}`,background:target===t?"#EC489915":"#0D0D14",color:target===t?"#F9A8D4":"#7E7E96",fontSize:11,cursor:"pointer",fontWeight:target===t?600:400}}>{t}</button>)}
         </div>
       </div>
-    </div>
-
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-      {/* Format */}
       <div>
-        <label style={{fontSize:10,fontWeight:700,color:"#4A4A60",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Format</label>
+        <label style={{fontSize:11,fontWeight:700,color:"#67E8F9",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:8}}>④ Tone</label>
         <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-          {FACTORY_FORMATS.map(f=><button key={f} onClick={()=>setFormat(f)} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${format===f?"#06B6D444":"#1A1A24"}`,background:format===f?"#06B6D415":"#0D0D14",color:format===f?"#67E8F9":"#7E7E96",fontSize:11,cursor:"pointer",fontWeight:format===f?600:400}}>{f}</button>)}
-        </div>
-      </div>
-      {/* Tone */}
-      <div>
-        <label style={{fontSize:10,fontWeight:700,color:"#4A4A60",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Tone Intensity</label>
-        <div style={{display:"flex",gap:4}}>
-          {FACTORY_TONES.map(t=><button key={t} onClick={()=>setTone(t)} style={{padding:"6px 16px",borderRadius:7,border:`1px solid ${tone===t?"#F59E0B44":"#1A1A24"}`,background:tone===t?"#F59E0B15":"#0D0D14",color:tone===t?"#FCD34D":"#7E7E96",fontSize:11,cursor:"pointer",fontWeight:tone===t?600:400}}>{t}</button>)}
+          {FACTORY_TONES.map(t=><button key={t} onClick={()=>setTone(t)} style={{padding:"6px 14px",borderRadius:7,border:`1px solid ${tone===t?"#06B6D444":"#1A1A24"}`,background:tone===t?"#06B6D415":"#0D0D14",color:tone===t?"#67E8F9":"#7E7E96",fontSize:11,cursor:"pointer",fontWeight:tone===t?600:400}}>{t}</button>)}
         </div>
       </div>
     </div>
@@ -547,7 +713,7 @@ Generate 3-5 options in Korean. Each must be faithful to Speak's brand voice. Va
     {/* Additional context */}
     <div style={{marginBottom:20}}>
       <label style={{fontSize:10,fontWeight:700,color:"#4A4A60",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Additional Context (optional)</label>
-      <textarea value={context} onChange={e=>setContext(e.target.value)} placeholder="e.g. Summer promo, emphasize travel English, 50% discount..." rows={2} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid #1A1A24",background:"#0D0D14",color:"#EDEDF3",fontSize:12,outline:"none",resize:"vertical",fontFamily:"'DM Sans','Noto Sans KR',sans-serif"}}/>
+      <textarea value={context} onChange={e=>setContext(e.target.value)} placeholder="e.g. Summer promo, emphasize travel English, 50% discount, 여행 시즌 강조..." rows={2} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid #1A1A24",background:"#0D0D14",color:"#EDEDF3",fontSize:12,outline:"none",resize:"vertical",fontFamily:"'DM Sans','Noto Sans KR',sans-serif"}}/>
     </div>
 
     {/* Reference copies preview */}
@@ -560,34 +726,33 @@ Generate 3-5 options in Korean. Each must be faithful to Speak's brand voice. Va
     </div>
 
     {/* Generate button */}
-    <button onClick={generate} disabled={loading} style={{padding:"12px 32px",borderRadius:8,border:"none",background:loading?"#2A2A38":"#6366F1",color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"wait":"pointer",fontFamily:"'Space Mono',monospace",transition:"all 0.15s",opacity:loading?0.7:1}}>
-      {loading?"Generating...":"⚡ Generate Copy Options"}
+    <button onClick={generate} disabled={loading} style={{padding:"14px 36px",borderRadius:8,border:"none",background:loading?"#2A2A38":"#6366F1",color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"wait":"pointer",fontFamily:"'Space Mono',monospace",opacity:loading?0.7:1}}>
+      {loading?"Generating 5-10 options...":"⚡ Generate Copy Options (5-10)"}
     </button>
 
     {error&&<div style={{marginTop:16,padding:"12px 16px",background:"#EF444420",borderRadius:8,color:"#EF4444",fontSize:12}}>{error}</div>}
 
     {/* Results */}
-    {results&&<div style={{marginTop:24}}>
-      <div style={{fontSize:14,fontWeight:700,color:"#EDEDF3",marginBottom:14,fontFamily:"'Space Mono',monospace"}}>Generated Options ({results.length})</div>
+    {results&&<div style={{marginTop:28}}>
+      <div style={{fontSize:14,fontWeight:700,color:"#EDEDF3",marginBottom:4,fontFamily:"'Space Mono',monospace"}}>Generated: {results.length} options</div>
+      <div style={{fontSize:11,color:"#7E7E96",marginBottom:16}}>{ch.label} · {fmt.label} · {target} · {tone}</div>
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {results.map((r,i)=>{const tc=toneColors[r.tone_level]||"#7E7E96";return(
           <div key={i} style={{background:"#111118",borderRadius:10,padding:"16px 20px",borderLeft:`4px solid ${tc}`,position:"relative"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <span style={{fontSize:11,fontWeight:700,color:tc,fontFamily:"'Space Mono',monospace"}}>Option {String.fromCharCode(65+i)}</span>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+              <span style={{fontSize:11,fontWeight:700,color:tc,fontFamily:"'Space Mono',monospace"}}>#{i+1}</span>
               <span style={{fontSize:10,padding:"2px 8px",borderRadius:99,background:tc+"18",color:tc,fontWeight:600}}>{r.tone_level}</span>
-              <span style={{fontSize:11,color:"#7E7E96",fontStyle:"italic"}}>{r.label}</span>
+              <span style={{fontSize:11,color:"#7E7E96"}}>{r.label}</span>
+              {r.levels_used&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:99,background:"#6366F115",color:"#6366F1",marginLeft:"auto",marginRight:70}}>{r.levels_used}</span>}
             </div>
-            <div style={{fontSize:17,fontWeight:700,lineHeight:1.5,color:"#EDEDF3",fontFamily:"'Noto Sans KR',sans-serif",letterSpacing:"-0.015em"}}>{r.headline}</div>
-            {r.supporting&&<div style={{fontSize:13,color:"#9CA3AF",marginTop:6,lineHeight:1.5}}>{r.supporting}</div>}
-            <div style={{fontSize:11,color:"#5A5A72",marginTop:10,lineHeight:1.5,fontStyle:"italic"}}>Brand note: {r.brand_note}</div>
-            <button onClick={()=>{navigator.clipboard.writeText(r.headline+(r.supporting?"\n"+r.supporting:""));setCopiedIdx(i);setTimeout(()=>setCopiedIdx(null),1200)}} style={{position:"absolute",top:14,right:14,border:"none",background:copiedIdx===i?"#10B981":"#1A1A24",color:copiedIdx===i?"#fff":"#7E7E96",borderRadius:6,padding:"4px 12px",fontSize:11,cursor:"pointer",fontWeight:600}}>{copiedIdx===i?"✓ Copied":"Copy"}</button>
+            {/* Structured copy fields */}
+            <div style={{marginBottom:8}}>{renderCopies(r.copies)}</div>
+            {r.en_translation&&<div style={{fontSize:12,color:"#5A5A72",marginTop:4,fontStyle:"italic"}}>{r.en_translation}</div>}
+            <div style={{fontSize:11,color:"#5A5A72",marginTop:8,lineHeight:1.5}}>{r.brand_note}</div>
+            {r.data_used&&r.data_used!=="none"&&<div style={{fontSize:10,color:"#06B6D4",marginTop:4}}>📊 {r.data_used}</div>}
+            <button onClick={()=>{const copyText=r.copies?Object.values(r.copies).join("\n"):r.headline||"";navigator.clipboard.writeText(copyText);setCopiedIdx(i);setTimeout(()=>setCopiedIdx(null),1200)}} style={{position:"absolute",top:14,right:14,border:"none",background:copiedIdx===i?"#10B981":"#1A1A24",color:copiedIdx===i?"#fff":"#7E7E96",borderRadius:6,padding:"4px 12px",fontSize:11,cursor:"pointer",fontWeight:600}}>{copiedIdx===i?"✓ Copied":"Copy"}</button>
           </div>
         )})}
-      </div>
-
-      {/* Brief summary */}
-      <div style={{marginTop:16,padding:"12px 16px",background:"#0D0D14",borderRadius:8,border:"1px solid #1A1A24",fontSize:11,color:"#5A5A72"}}>
-        Brief: {channel} · {target} · {format} · {tone}{context?` · "${context}"`:""} 
       </div>
     </div>}
   </div>);
